@@ -1,4 +1,4 @@
-﻿namespace Core;
+﻿namespace Core.Enums;
 
 /// <summary>
 /// Направления движения движущихся объектов на карте

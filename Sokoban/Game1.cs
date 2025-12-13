@@ -1,47 +1,35 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
-using Core;
+using Core.Enums;
 using Core.Interfaces;
 using Core.Logic;
 using Core.Models;
+using Gum.Forms;
+using Gum.Forms.Controls;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using Point = Microsoft.Xna.Framework.Point;
+using MonoGameGum;
+using Sokoban.Enums;
+using Sokoban.Screens;
 
 namespace Sokoban;
 
 public class Game1 : Game
 {
-    private const int TILE_SIZE = 50;
-    const float TARGET_SCALE = 0.5f;
-    const float PLAYER_SCALE = 0.7f;
-
-    private int _currentLevel = 2;
-    
     private GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch;
-    private KeyboardState _previousKeyboardState;
 
+    private IGameScreen _currentScreen;
+    private MainMenuScreen _mainMenuScreen;
+    private GameplayScreen _gameplayScreen;
     private GameEngine _engine;
+    private KeyboardState _previousKeyboardState;
+    private string _playerName;
+    private MapDrawer _mapDrawer;
 
-    private Texture2D _groundTexture;
-    private Texture2D _wallTexture;
-    private Texture2D _boxTexture;
-    private Texture2D _targetTexture;
-    private Texture2D _playerTexture;
-
-    private readonly Dictionary<Keys, Direction> _movementKeys = new()
-    {
-        { Keys.Up, Direction.Up },
-        { Keys.Down, Direction.Down },
-        { Keys.Left, Direction.Left },
-        { Keys.Right, Direction.Right },
-        { Keys.W, Direction.Up },
-        { Keys.S, Direction.Down },
-        { Keys.A, Direction.Left },
-        { Keys.D, Direction.Right },
-    };
+    private int _currentLevel = 0;
 
     public Game1()
     {
@@ -52,7 +40,15 @@ public class Game1 : Game
 
     protected override void Initialize()
     {
+        InitializeGum();
+
         _engine = new GameEngine(new MapLoader(), null);
+
+        _mainMenuScreen = new MainMenuScreen(StartGame);
+        _previousKeyboardState = new KeyboardState();
+
+        _currentScreen = _mainMenuScreen;
+
         base.Initialize();
     }
 
@@ -60,75 +56,103 @@ public class Game1 : Game
     {
         _spriteBatch = new SpriteBatch(GraphicsDevice);
 
-        _engine.StartLevel(_currentLevel, "Player");
-
-        _groundTexture = Content.Load<Texture2D>("Images/Ground");
-        _wallTexture = Content.Load<Texture2D>("Images/Wall");
-        _playerTexture = Content.Load<Texture2D>("Images/Player");
-        _boxTexture = Content.Load<Texture2D>("Images/Box");
-        _targetTexture = Content.Load<Texture2D>("Images/Target");
+        _mapDrawer = new MapDrawer(
+            Content.Load<Texture2D>("Images/Ground"),
+            Content.Load<Texture2D>("Images/Wall"),
+            Content.Load<Texture2D>("Images/Box"),
+            Content.Load<Texture2D>("Images/Target"),
+            Content.Load<Texture2D>("Images/Player")
+        );
     }
 
     protected override void Update(GameTime gameTime)
     {
-        if (_engine.CheckWin())
-        {
-            _engine.StartLevel(++_currentLevel, "Player");
-            return;
-        }
+        GumService.Default.Update(gameTime);
+
         var keyboardState = Keyboard.GetState();
 
-        foreach (var key in _movementKeys.Keys.Where(key => IsJustPressed(keyboardState, key)))
+        if (keyboardState.IsKeyDown(Keys.Escape))
         {
-            _engine.Move(_movementKeys[key]);
+            _currentScreen = _mainMenuScreen;
+            _mainMenuScreen.OpenMenu();
         }
 
-        _previousKeyboardState = keyboardState;
+        if (_currentScreen is GameplayScreen && keyboardState.IsKeyDown(Keys.R))
+        {
+            _engine.StartLevel(_currentLevel, _playerName);
+        }
+
+        _currentScreen.Update(gameTime);
+
+        if (_engine.Map is not null && _engine.CheckWin())
+        {
+            _engine.EndLevel();
+            _engine.StartLevel(++_currentLevel, _playerName);
+            ResizeTile(_engine.Map);
+            _previousKeyboardState = keyboardState;
+            return;
+        }
+
         base.Update(gameTime);
+    }
+
+    protected override void Draw(GameTime gameTime)
+    {
+        GraphicsDevice.Clear(Color.CornflowerBlue);
+        _currentScreen.Draw(gameTime);
+        base.Draw(gameTime);
     }
 
     private bool IsJustPressed(KeyboardState kb, Keys key) =>
         kb.IsKeyDown(key) && _previousKeyboardState.IsKeyUp(key);
 
-    protected override void Draw(GameTime gameTime)
+    private void InitializeGum()
     {
-        GraphicsDevice.Clear(Color.CornflowerBlue);
+        GumService.Default.Initialize(this, DefaultVisualsVersion.V2);
+        GumService.Default.ContentLoader.XnaContentManager = Content;
 
-        _spriteBatch.Begin();
+        FrameworkElement.KeyboardsForUiControl.Clear();
+        FrameworkElement.KeyboardsForUiControl.Add(GumService.Default.Keyboard);
+        FrameworkElement.GamePadsForUiControl.Clear();
+        FrameworkElement.GamePadsForUiControl.AddRange(GumService.Default.Gamepads);
 
-        for (var y = 0; y < _engine.Map.Height; y++)
-        for (var x = 0; x < _engine.Map.Width; x++)
-        {
-            _spriteBatch.Draw(_groundTexture, GetRectangle(x, y), Color.White);
+        FrameworkElement.TabKeyCombos.Clear();
+        FrameworkElement.TabReverseKeyCombos.Clear();
 
-            if (_engine.IsTarget(x, y))
-                _spriteBatch.Draw(_targetTexture, GetRectangle(x, y, TARGET_SCALE), Color.White);
-        }
-
-        foreach (var wall in _engine.Map.Walls)
-            _spriteBatch.Draw(_wallTexture, GetRectangle(wall), Color.White);
-
-        foreach (var box in _engine.Map.Boxes)
-            _spriteBatch.Draw(_boxTexture, GetRectangle(box), Color.White);
-
-        _spriteBatch.Draw(_playerTexture, GetRectangle(_engine.Map.Player, PLAYER_SCALE), Color.White);
-
-        _spriteBatch.End();
-
-        base.Draw(gameTime);
+        GumService.Default.CanvasWidth = GraphicsDevice.PresentationParameters.BackBufferWidth;
+        GumService.Default.CanvasHeight = GraphicsDevice.PresentationParameters.BackBufferHeight;
+        GumService.Default.Renderer.Camera.Zoom = 1.0f;
     }
 
-    private Rectangle GetRectangle(int cellX, int cellY, float scale = 1)
+    private void StartGame(string playerName, int levelNum)
     {
-        var size = (int)(TILE_SIZE * scale);
-        var offset = (TILE_SIZE - size) / 2;
+        _currentLevel = levelNum;
+        _playerName = playerName;
+        _engine.StartLevel(_currentLevel, _playerName);
 
-        var x = cellX * TILE_SIZE + offset;
-        var y = cellY * TILE_SIZE + offset;
-
-        return new Rectangle(x, y, size, size);
+        ResizeTile(_engine.Map);
+        
+        _gameplayScreen = new GameplayScreen(
+            _engine,
+            _spriteBatch,
+            _mapDrawer,
+            _previousKeyboardState,
+            _currentLevel,
+            _playerName
+        );
+        _currentScreen = _gameplayScreen;
     }
+    
+    private void ResizeTile(LevelMap map)
+    {
+        var screenWidth  = GraphicsDevice.PresentationParameters.BackBufferWidth;
+        var screenHeight = GraphicsDevice.PresentationParameters.BackBufferHeight;
 
-    private Rectangle GetRectangle(IMapObject obj, float scale = 1) =>
-        GetRectangle(obj.Position.X, obj.Position.Y, scale);
+        var tileSizeX = (screenWidth - 200)  / map.Width;
+        var tileSizeY = screenHeight / map.Height;
+
+        var tileSize = Math.Min(tileSizeX, tileSizeY);
+
+        _mapDrawer.TileSize = tileSize;
+    }
 }

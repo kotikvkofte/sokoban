@@ -1,4 +1,6 @@
-﻿namespace Core.Structs;
+﻿using Core.Enums;
+
+namespace Core.Structs;
 
 /// <summary>
 /// Структура, характерихующее положение объекта на карте.
@@ -11,7 +13,7 @@ public readonly struct Point(int x, int y)
     /// Координата оси X.
     /// </summary>
     public readonly int X = x;
-    
+
     /// <summary>
     /// Координата оси Y.
     /// </summary>
@@ -34,6 +36,6 @@ public readonly struct Point(int x, int y)
     }
 
     public override int GetHashCode() => HashCode.Combine(X, Y);
-    
+
     public override bool Equals(object? obj) => obj is Point point && point.X == X && point.Y == Y;
 }

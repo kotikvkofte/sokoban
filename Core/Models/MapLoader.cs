@@ -38,6 +38,18 @@ public class MapLoader : IMapLoader
         1000T001
         11111111
         """,
+        """
+        11111111111100 
+        1TT00100000111 
+        1TT0010B00B001
+        1TT001B1111001
+        1TT0000P011001
+        1TT0010100B011
+        111111011B0B01
+        0010B00B0B0B01
+        00100001000001
+        00111111111111
+        """,
     ];
 
     public LevelMap LoadLevel(int levelNumber, string playerName)
