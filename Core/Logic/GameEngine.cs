@@ -73,7 +73,7 @@ public class GameEngine
         if (nextBoxObj is not (null or Target))
             return false;
 
-        Map.MoveObjectOnMap(box.Position, nextBoxPos);
+        // Map.MoveObjectOnMap(box.Position, nextBoxPos);
         box.Push(nextBoxPos);
 
         return true;

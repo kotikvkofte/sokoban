@@ -5,5 +5,9 @@
 /// </summary>
 public interface IMovable : IMapObject
 {
+    /// <summary>
+    /// Движение объекта на карте.
+    /// </summary>
+    /// <param name="newPosition">Новая позиция объекта.</param>
     void Move(Point newPosition);
 }

@@ -2,9 +2,15 @@
 
 namespace Core.Models;
 
+/// <summary>
+/// Загрузщик игрового уровня.
+/// </summary>
 public class MapLoader : IMapLoader
 {
-    private List<string> levels =
+    /// <summary>
+    /// Список уровней.
+    /// </summary>
+    private static readonly List<string> levels =
     [
         """
         11111111
@@ -38,6 +44,12 @@ public class MapLoader : IMapLoader
         return ParseLevel(levels[levelNumber], playerName);
     }
 
+    /// <summary>
+    /// Парсер уровня (можно выделить в отдельный класс)
+    /// </summary>
+    /// <param name="level">Уровень в строковом формате</param>
+    /// <param name="playerName">Имя игрока.</param>
+    /// <returns>Игровой уровень.</returns>
     private LevelMap ParseLevel(string level, string playerName)
     {
         var stringLines = level.Replace("\r", "").Split(['\n']);
