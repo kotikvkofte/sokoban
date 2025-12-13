@@ -2,7 +2,10 @@
 
 namespace Core.Models;
 
-public class Wall(int x, int y) : IMapObject
+public class Wall : IMapObject
 {
-    public Point Position { get; set; } =  new Point(x,y);
+    public Point Position { get; set; }
+
+    public Wall(int x, int y) => Position = new Point(x, y);
+    public Wall(Point position) => Position = position;
 }

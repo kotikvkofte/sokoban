@@ -2,7 +2,10 @@
 
 namespace Core.Models;
 
-public class Target(int x, int y) : IMapObject
+public class Target: IMapObject
 {
-    public Point Position { get; set; } =  new Point(x,y);
+    public Point Position { get; set; }
+
+    public Target(int x, int y) =>  Position = new Point(x, y);
+    public Target(Point position) =>  Position = position;
 }

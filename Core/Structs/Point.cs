@@ -16,4 +16,8 @@ public readonly struct Point(int x, int y)
             _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, "Wrong direction")
         };
     }
+
+    public override int GetHashCode() => HashCode.Combine(X, Y);
+    
+    public override bool Equals(object? obj) => obj is Point point && point.X == X && point.Y == Y;
 }

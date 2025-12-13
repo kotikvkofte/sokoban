@@ -2,10 +2,14 @@
 
 namespace Core.Models;
 
-public class Box(int x, int y) : IMapObject
+public class Box : IPushable
 {
-    public Point Position { get; set; } =  new Point(x,y);
-    
+    public Point Position { get; set; }
+
+    public Box(int x, int y) => Position = new Point(x, y);
+
+    public Box(Point position) => Position = position;
+
     public void Push(Point newPosition)
     {
         Position = newPosition;

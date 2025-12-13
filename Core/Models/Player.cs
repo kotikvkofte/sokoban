@@ -2,10 +2,11 @@
 
 namespace Core.Models;
 
-public class Player : IMovable
+public class Player(string name, Point position) : IMovable
 {
-    public string Name { get; set; } = "Player";
-    public Point Position { get; set; }
+    public string Name { get; set; } = name;
+    public Point Position { get; set; } = position;
+
     public void Move(Point newPosition)
     {
         Position = newPosition;
