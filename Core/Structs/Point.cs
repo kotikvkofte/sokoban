@@ -1,4 +1,4 @@
-﻿namespace Core;
+﻿namespace Core.Structs;
 
 /// <summary>
 /// Структура, характерихующее положение объекта на карте.

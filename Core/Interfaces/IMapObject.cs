@@ -1,4 +1,6 @@
-﻿namespace Core.Interfaces;
+﻿using Core.Structs;
+
+namespace Core.Interfaces;
 
 /// <summary>
 /// Интерфейс для объекта, расположенного на карте.
