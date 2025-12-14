@@ -13,14 +13,19 @@ namespace Core.Logic;
 public class GameEngine(IMapLoader mapLoader, IGameProgressSaver progressSaver)
 {
     /// <summary>
+    /// Игровая статистика.
+    /// </summary>
+    public GameState State { get; } = new();
+
+    /// <summary>
+    /// Количество уровней.
+    /// </summary>
+    public int LevelCount => mapLoader.LevelsCount;
+    
+    /// <summary>
     /// Текущий уровень.
     /// </summary>
     public LevelMap Map { get; private set; }
-    
-    /// <summary>
-    /// Игровая статистика.
-    /// </summary>
-    private readonly GameState state = new();
 
     /// <summary>
     /// Объект, отвечающий за сохранение игрового прогресса.
@@ -39,15 +44,21 @@ public class GameEngine(IMapLoader mapLoader, IGameProgressSaver progressSaver)
     /// <param name="playerName">Имя игрока.</param>
     public void StartLevel(int levelNumber, string playerName)
     {
-        Map = mapLoader.LoadLevel(levelNumber, playerName);
-
-        state.CurrentLevel = levelNumber;
-        state.CurrentMovesCount = 0;
-        state.CurrentTime = TimeSpan.Zero;
+        if(levelNumber >= LevelCount || levelNumber < 0)
+            throw new ArgumentOutOfRangeException(nameof(levelNumber), "Такого уровня нет.");
+        
+        Map = mapLoader.LoadLevel(levelNumber);
+        Map.Player.Name = playerName;
+        
+        State.CurrentLevel = levelNumber;
+        State.CurrentMovesCount = 0;
+        State.CurrentTime = TimeSpan.Zero;
 
         levelTimer.Restart();
     }
 
+    public TimeSpan CurrentTime => levelTimer.Elapsed;
+    
     /// <summary>
     /// Движение объектов на карте в указанном направлении.
     /// </summary>
@@ -56,12 +67,13 @@ public class GameEngine(IMapLoader mapLoader, IGameProgressSaver progressSaver)
     public void Move(Direction direction)
     {
         if (Map.TryMove(direction))
-            state.CurrentMovesCount++;
+            State.CurrentMovesCount++;
     }
 
     public bool CheckWin() => Map.IsAllBoxOnTargets();
 
     public void EndLevel()
     {
+        //TODO:сохранение результатов в БД
     }
 }

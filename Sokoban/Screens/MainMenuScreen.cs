@@ -14,7 +14,7 @@ public class MainMenuScreen : IGameScreen
     private TextBox _levelNumTextBox;
     private Button _startButton;
     private string _playerName = "";
-    private int _levelNum = 0;
+    private string _levelNum = "1";
 
     public MainMenuScreen(Action<string, int> onStart)
     {
@@ -23,7 +23,7 @@ public class MainMenuScreen : IGameScreen
     }
 
     public void OpenMenu() => _panel.IsVisible = true;
-    
+
     public void Update(GameTime gameTime) => GumService.Default.Update(gameTime);
 
     public void Draw(GameTime gameTime) => GumService.Default.Draw();
@@ -53,19 +53,19 @@ public class MainMenuScreen : IGameScreen
         _nameTextBox.Visual.Y = -40;
         _nameTextBox.TextChanged += (_, _) => _playerName = _nameTextBox.Text;
         _panel.AddChild(_nameTextBox);
-        
+
         var levelNumLabel = new Label();
         levelNumLabel.Text = "Enter level number:";
         levelNumLabel.Anchor(Anchor.Center);
         levelNumLabel.Visual.Y = 0;
         _panel.AddChild(levelNumLabel);
-        
+
         _levelNumTextBox = new TextBox();
         _levelNumTextBox.Width = 200;
-        _levelNumTextBox.Placeholder = "0";
+        _levelNumTextBox.Placeholder = "1";
         _levelNumTextBox.Anchor(Anchor.Center);
         _levelNumTextBox.Visual.Y = 30;
-        _levelNumTextBox.TextChanged += (_, _) => _levelNum = int.Parse(_levelNumTextBox.Text);
+        _levelNumTextBox.TextChanged += (_, _) => _levelNum = _levelNumTextBox.Text;
         _panel.AddChild(_levelNumTextBox);
 
         _startButton = new Button();
@@ -77,7 +77,7 @@ public class MainMenuScreen : IGameScreen
 
         _nameTextBox.IsFocused = true;
     }
-    
+
     private void TryStart()
     {
         var name = _playerName?.Trim();
@@ -85,6 +85,6 @@ public class MainMenuScreen : IGameScreen
             return;
 
         _panel.IsVisible = false;
-        _onStart(name, _levelNum);
+        _onStart(name, int.Parse(_levelNum) - 1);
     }
 }

@@ -24,12 +24,14 @@ public class Game1 : Game
     private IGameScreen _currentScreen;
     private MainMenuScreen _mainMenuScreen;
     private GameplayScreen _gameplayScreen;
+    private EndLevelScreen _endLevelScreen;
+    private EndGameScreen _endGameScreen;
     private GameEngine _engine;
     private KeyboardState _previousKeyboardState;
-    private string _playerName;
     private MapDrawer _mapDrawer;
 
     private int _currentLevel = 0;
+    private string _playerName = "";
 
     public Game1()
     {
@@ -43,10 +45,12 @@ public class Game1 : Game
         InitializeGum();
 
         _engine = new GameEngine(new MapLoader(), null);
-
-        _mainMenuScreen = new MainMenuScreen(StartGame);
         _previousKeyboardState = new KeyboardState();
 
+        _mainMenuScreen = new MainMenuScreen(StartGame);
+        _endLevelScreen = new EndLevelScreen(ToMainMenu, ToNextLevel, _engine.State);
+        _endGameScreen = new EndGameScreen(ToMainMenu, _engine.State);
+        
         _currentScreen = _mainMenuScreen;
 
         base.Initialize();
@@ -63,6 +67,13 @@ public class Game1 : Game
             Content.Load<Texture2D>("Images/Target"),
             Content.Load<Texture2D>("Images/Player")
         );
+
+        _gameplayScreen = new GameplayScreen(
+            _engine,
+            _spriteBatch,
+            _mapDrawer,
+            _previousKeyboardState
+        );
     }
 
     protected override void Update(GameTime gameTime)
@@ -73,26 +84,22 @@ public class Game1 : Game
 
         if (keyboardState.IsKeyDown(Keys.Escape))
         {
-            _currentScreen = _mainMenuScreen;
-            _mainMenuScreen.OpenMenu();
+            _gameplayScreen.CloseScreen();
+            ToMainMenu();
         }
 
-        if (_currentScreen is GameplayScreen && keyboardState.IsKeyDown(Keys.R))
+        if (_currentScreen is GameplayScreen)
         {
-            _engine.StartLevel(_currentLevel, _playerName);
+            if (keyboardState.IsKeyDown(Keys.R))
+            {
+                _gameplayScreen.CloseScreen();
+                StartCurrentLevel();
+            }
+
+            TryEndLevel();
         }
 
         _currentScreen.Update(gameTime);
-
-        if (_engine.Map is not null && _engine.CheckWin())
-        {
-            _engine.EndLevel();
-            _engine.StartLevel(++_currentLevel, _playerName);
-            ResizeTile(_engine.Map);
-            _previousKeyboardState = keyboardState;
-            return;
-        }
-
         base.Update(gameTime);
     }
 
@@ -102,9 +109,6 @@ public class Game1 : Game
         _currentScreen.Draw(gameTime);
         base.Draw(gameTime);
     }
-
-    private bool IsJustPressed(KeyboardState kb, Keys key) =>
-        kb.IsKeyDown(key) && _previousKeyboardState.IsKeyUp(key);
 
     private void InitializeGum()
     {
@@ -124,35 +128,64 @@ public class Game1 : Game
         GumService.Default.Renderer.Camera.Zoom = 1.0f;
     }
 
+    private void ToNextLevel()
+    {
+        _currentLevel++;
+        StartCurrentLevel();
+    }
+
+    private void ToMainMenu()
+    {
+        _currentScreen = _mainMenuScreen;
+        _mainMenuScreen.OpenMenu();
+    }
+
+    private void StartCurrentLevel()
+    {
+        _engine.StartLevel(_currentLevel, _playerName);
+        ResizeTile(_engine.Map);
+        _gameplayScreen.Initialize();
+        
+        _currentScreen = _gameplayScreen;
+    }
+
     private void StartGame(string playerName, int levelNum)
     {
         _currentLevel = levelNum;
         _playerName = playerName;
-        _engine.StartLevel(_currentLevel, _playerName);
-
-        ResizeTile(_engine.Map);
-        
-        _gameplayScreen = new GameplayScreen(
-            _engine,
-            _spriteBatch,
-            _mapDrawer,
-            _previousKeyboardState,
-            _currentLevel,
-            _playerName
-        );
-        _currentScreen = _gameplayScreen;
+        StartCurrentLevel();
     }
-    
+
     private void ResizeTile(LevelMap map)
     {
-        var screenWidth  = GraphicsDevice.PresentationParameters.BackBufferWidth;
+        var screenWidth = GraphicsDevice.PresentationParameters.BackBufferWidth - 200;
         var screenHeight = GraphicsDevice.PresentationParameters.BackBufferHeight;
 
-        var tileSizeX = (screenWidth - 200)  / map.Width;
+        var tileSizeX = screenWidth / map.Width;
         var tileSizeY = screenHeight / map.Height;
 
         var tileSize = Math.Min(tileSizeX, tileSizeY);
 
         _mapDrawer.TileSize = tileSize;
+    }
+
+    private void TryEndLevel()
+    {
+        if (_engine.Map is null || !_engine.CheckWin()) 
+            return;
+        _engine.State.PassedLevels++;
+        _gameplayScreen.CloseScreen();
+        
+        if (_engine.LevelCount - 1 == _currentLevel)
+        {
+            _endGameScreen.Open();
+            _currentScreen = _endGameScreen;
+        }
+        else
+        {
+            _engine.EndLevel();
+            _currentScreen = _endLevelScreen;
+            _endLevelScreen.Open();
+        }
     }
 }

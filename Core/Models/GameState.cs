@@ -11,7 +11,7 @@ public class GameState
     public int CurrentLevel { get; set; } = 0;
 
     /// <summary>
-    /// Кол-ва пройденных уровнейю
+    /// Кол-ва пройденных уровней
     /// </summary>
     public int PassedLevels { get; set; } = 0;
 
