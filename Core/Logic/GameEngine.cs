@@ -1,87 +1,79 @@
 ﻿using System.Diagnostics;
+using Core.Enums;
 using Core.Interfaces;
 using Core.Models;
-using Core.Structs;
 
 namespace Core.Logic;
 
-public class GameEngine
+/// <summary>
+/// Класс, отвечающий за геймплей.
+/// </summary>
+/// <param name="mapLoader"></param>
+/// <param name="progressSaver"></param>
+public class GameEngine(IMapLoader mapLoader, IGameProgressSaver progressSaver)
 {
-    public LevelMap Map { get; private set; }
-    private readonly GameState state;
-    private HashSet<Point> targetPositions;
+    /// <summary>
+    /// Игровая статистика.
+    /// </summary>
+    public GameState State { get; } = new();
 
-    private readonly IMapLoader mapLoader;
-    private readonly IGameProgressSaver progressSaver;
+    /// <summary>
+    /// Количество уровней.
+    /// </summary>
+    public int LevelCount => mapLoader.LevelsCount;
+    
+    /// <summary>
+    /// Текущий уровень.
+    /// </summary>
+    public LevelMap Map { get; private set; }
+
+    /// <summary>
+    /// Объект, отвечающий за сохранение игрового прогресса.
+    /// </summary>
+    private readonly IGameProgressSaver progressSaver = progressSaver;
+    
+    /// <summary>
+    /// Таймер.
+    /// </summary>
     private readonly Stopwatch levelTimer = new Stopwatch();
 
-    public GameEngine(IMapLoader mapLoader, IGameProgressSaver progressSaver)
-    {
-        this.mapLoader = mapLoader;
-        this.progressSaver = progressSaver;
-        state = new GameState();
-    }
-
+    /// <summary>
+    /// Начать уровень.
+    /// </summary>
+    /// <param name="levelNumber">Номер уровня.</param>
+    /// <param name="playerName">Имя игрока.</param>
     public void StartLevel(int levelNumber, string playerName)
     {
-        Map = mapLoader.LoadLevel(levelNumber, playerName);
-
-        targetPositions = [..Map.Targets.Select(t => t.Position)];
-
-        state.CurrentLevel = levelNumber;
-        state.CurrentMovesCount = 0;
-        state.CurrentTime = TimeSpan.Zero;
+        if(levelNumber >= LevelCount || levelNumber < 0)
+            throw new ArgumentOutOfRangeException(nameof(levelNumber), "Такого уровня нет.");
+        
+        Map = mapLoader.LoadLevel(levelNumber);
+        Map.Player.Name = playerName;
+        
+        State.CurrentLevel = levelNumber;
+        State.CurrentMovesCount = 0;
+        State.CurrentTime = TimeSpan.Zero;
 
         levelTimer.Restart();
     }
 
-    public bool IsTarget(int x, int y) => targetPositions.Contains(new Point(x, y));
+    public TimeSpan CurrentTime => levelTimer.Elapsed;
     
-    public bool CheckWin() => Map.Boxes.All(b => targetPositions.Contains(b.Position));
-
-    public bool Move(Direction direction)
+    /// <summary>
+    /// Движение объектов на карте в указанном направлении.
+    /// </summary>
+    /// <param name="direction">Напарвление.</param>
+    /// <returns></returns>
+    public void Move(Direction direction)
     {
-        var currentPlayerPos = Map.Player.Position;
-        var nextPlayerPos = currentPlayerPos.GetNextPoint(direction);
-
-        var nextMapObject = Map.GetObject(nextPlayerPos);
-        switch (nextMapObject)
-        {
-            case Wall:
-                return false;
-            case IPushable box:
-            {
-                var isMove = MoveBox(box, direction);
-                if (!isMove)
-                    return false;
-                break;
-            }
-        }
-
-        Map.Player.Move(nextPlayerPos);
-        state.CurrentMovesCount++;
-
-        if (CheckWin())
-            EndLevel();
-
-        return true;
+        if (Map.TryMove(direction))
+            State.CurrentMovesCount++;
     }
 
-    private bool MoveBox(IPushable box, Direction direction)
+    public bool CheckWin() => Map.IsAllBoxOnTargets();
+
+    public void EndLevel()
     {
-        var nextBoxPos = box.Position.GetNextPoint(direction);
-        var nextBoxObj = Map.GetObject(nextBoxPos);
-        if (nextBoxObj is not (null or Target))
-            return false;
-
-        Map.MoveObjectOnMap(box.Position, nextBoxPos);
-        box.Push(nextBoxPos);
-
-        return true;
-    }
-
-
-    private void EndLevel()
-    {
+        //TODO:сохранение результатов в БД
     }
 }

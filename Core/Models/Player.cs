@@ -6,12 +6,12 @@ namespace Core.Models;
 /// <summary>
 /// Класс игрока, который может передвигаться.
 /// </summary>
-public class Player(string name, Point position) : IMovable
+public class Player(Point position) : IMovable
 {
     /// <summary>
     /// Имя игрока.
     /// </summary>
-    public string Name { get; set; } = name;
+    public string Name { get; set; } = "";
 
     /// <summary>
     /// Положение игрока на  карте.

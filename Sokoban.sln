@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "Core\Core.csproj", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sokoban", "Sokoban\Sokoban.csproj", "{6B147DD8-FFF1-42AD-9EFD-F5E6DA0684F0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DBA", "DBA\DBA.csproj", "{F686E911-19C1-46CF-9EA9-C93CD73E8AA9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{6B147DD8-FFF1-42AD-9EFD-F5E6DA0684F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6B147DD8-FFF1-42AD-9EFD-F5E6DA0684F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6B147DD8-FFF1-42AD-9EFD-F5E6DA0684F0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F686E911-19C1-46CF-9EA9-C93CD73E8AA9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F686E911-19C1-46CF-9EA9-C93CD73E8AA9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F686E911-19C1-46CF-9EA9-C93CD73E8AA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F686E911-19C1-46CF-9EA9-C93CD73E8AA9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

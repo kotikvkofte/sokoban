@@ -1,47 +1,37 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
-using Core;
+using Core.Enums;
 using Core.Interfaces;
 using Core.Logic;
 using Core.Models;
+using Gum.Forms;
+using Gum.Forms.Controls;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using Point = Microsoft.Xna.Framework.Point;
+using MonoGameGum;
+using Sokoban.Enums;
+using Sokoban.Screens;
 
 namespace Sokoban;
 
 public class Game1 : Game
 {
-    private const int TILE_SIZE = 50;
-    const float TARGET_SCALE = 0.5f;
-    const float PLAYER_SCALE = 0.7f;
-
-    private int _currentLevel = 2;
-    
     private GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch;
-    private KeyboardState _previousKeyboardState;
 
+    private IGameScreen _currentScreen;
+    private MainMenuScreen _mainMenuScreen;
+    private GameplayScreen _gameplayScreen;
+    private EndLevelScreen _endLevelScreen;
+    private EndGameScreen _endGameScreen;
     private GameEngine _engine;
+    private KeyboardState _previousKeyboardState;
+    private MapDrawer _mapDrawer;
 
-    private Texture2D _groundTexture;
-    private Texture2D _wallTexture;
-    private Texture2D _boxTexture;
-    private Texture2D _targetTexture;
-    private Texture2D _playerTexture;
-
-    private readonly Dictionary<Keys, Direction> _movementKeys = new()
-    {
-        { Keys.Up, Direction.Up },
-        { Keys.Down, Direction.Down },
-        { Keys.Left, Direction.Left },
-        { Keys.Right, Direction.Right },
-        { Keys.W, Direction.Up },
-        { Keys.S, Direction.Down },
-        { Keys.A, Direction.Left },
-        { Keys.D, Direction.Right },
-    };
+    private int _currentLevel = 0;
+    private string _playerName = "";
 
     public Game1()
     {
@@ -52,7 +42,17 @@ public class Game1 : Game
 
     protected override void Initialize()
     {
+        InitializeGum();
+
         _engine = new GameEngine(new MapLoader(), null);
+        _previousKeyboardState = new KeyboardState();
+
+        _mainMenuScreen = new MainMenuScreen(StartGame);
+        _endLevelScreen = new EndLevelScreen(ToMainMenu, ToNextLevel, _engine.State);
+        _endGameScreen = new EndGameScreen(ToMainMenu, _engine.State);
+        
+        _currentScreen = _mainMenuScreen;
+
         base.Initialize();
     }
 
@@ -60,75 +60,132 @@ public class Game1 : Game
     {
         _spriteBatch = new SpriteBatch(GraphicsDevice);
 
-        _engine.StartLevel(_currentLevel, "Player");
+        _mapDrawer = new MapDrawer(
+            Content.Load<Texture2D>("Images/Ground"),
+            Content.Load<Texture2D>("Images/Wall"),
+            Content.Load<Texture2D>("Images/Box"),
+            Content.Load<Texture2D>("Images/Target"),
+            Content.Load<Texture2D>("Images/Player")
+        );
 
-        _groundTexture = Content.Load<Texture2D>("Images/Ground");
-        _wallTexture = Content.Load<Texture2D>("Images/Wall");
-        _playerTexture = Content.Load<Texture2D>("Images/Player");
-        _boxTexture = Content.Load<Texture2D>("Images/Box");
-        _targetTexture = Content.Load<Texture2D>("Images/Target");
+        _gameplayScreen = new GameplayScreen(
+            _engine,
+            _spriteBatch,
+            _mapDrawer,
+            _previousKeyboardState
+        );
     }
 
     protected override void Update(GameTime gameTime)
     {
-        if (_engine.CheckWin())
-        {
-            _engine.StartLevel(++_currentLevel, "Player");
-            return;
-        }
+        GumService.Default.Update(gameTime);
+
         var keyboardState = Keyboard.GetState();
 
-        foreach (var key in _movementKeys.Keys.Where(key => IsJustPressed(keyboardState, key)))
+        if (keyboardState.IsKeyDown(Keys.Escape))
         {
-            _engine.Move(_movementKeys[key]);
+            _gameplayScreen.CloseScreen();
+            ToMainMenu();
         }
 
-        _previousKeyboardState = keyboardState;
+        if (_currentScreen is GameplayScreen)
+        {
+            if (keyboardState.IsKeyDown(Keys.R))
+            {
+                _gameplayScreen.CloseScreen();
+                StartCurrentLevel();
+            }
+
+            TryEndLevel();
+        }
+
+        _currentScreen.Update(gameTime);
         base.Update(gameTime);
     }
-
-    private bool IsJustPressed(KeyboardState kb, Keys key) =>
-        kb.IsKeyDown(key) && _previousKeyboardState.IsKeyUp(key);
 
     protected override void Draw(GameTime gameTime)
     {
         GraphicsDevice.Clear(Color.CornflowerBlue);
-
-        _spriteBatch.Begin();
-
-        for (var y = 0; y < _engine.Map.Height; y++)
-        for (var x = 0; x < _engine.Map.Width; x++)
-        {
-            _spriteBatch.Draw(_groundTexture, GetRectangle(x, y), Color.White);
-
-            if (_engine.IsTarget(x, y))
-                _spriteBatch.Draw(_targetTexture, GetRectangle(x, y, TARGET_SCALE), Color.White);
-        }
-
-        foreach (var wall in _engine.Map.Walls)
-            _spriteBatch.Draw(_wallTexture, GetRectangle(wall), Color.White);
-
-        foreach (var box in _engine.Map.Boxes)
-            _spriteBatch.Draw(_boxTexture, GetRectangle(box), Color.White);
-
-        _spriteBatch.Draw(_playerTexture, GetRectangle(_engine.Map.Player, PLAYER_SCALE), Color.White);
-
-        _spriteBatch.End();
-
+        _currentScreen.Draw(gameTime);
         base.Draw(gameTime);
     }
 
-    private Rectangle GetRectangle(int cellX, int cellY, float scale = 1)
+    private void InitializeGum()
     {
-        var size = (int)(TILE_SIZE * scale);
-        var offset = (TILE_SIZE - size) / 2;
+        GumService.Default.Initialize(this, DefaultVisualsVersion.V2);
+        GumService.Default.ContentLoader.XnaContentManager = Content;
 
-        var x = cellX * TILE_SIZE + offset;
-        var y = cellY * TILE_SIZE + offset;
+        FrameworkElement.KeyboardsForUiControl.Clear();
+        FrameworkElement.KeyboardsForUiControl.Add(GumService.Default.Keyboard);
+        FrameworkElement.GamePadsForUiControl.Clear();
+        FrameworkElement.GamePadsForUiControl.AddRange(GumService.Default.Gamepads);
 
-        return new Rectangle(x, y, size, size);
+        FrameworkElement.TabKeyCombos.Clear();
+        FrameworkElement.TabReverseKeyCombos.Clear();
+
+        GumService.Default.CanvasWidth = GraphicsDevice.PresentationParameters.BackBufferWidth;
+        GumService.Default.CanvasHeight = GraphicsDevice.PresentationParameters.BackBufferHeight;
+        GumService.Default.Renderer.Camera.Zoom = 1.0f;
     }
 
-    private Rectangle GetRectangle(IMapObject obj, float scale = 1) =>
-        GetRectangle(obj.Position.X, obj.Position.Y, scale);
+    private void ToNextLevel()
+    {
+        _currentLevel++;
+        StartCurrentLevel();
+    }
+
+    private void ToMainMenu()
+    {
+        _currentScreen = _mainMenuScreen;
+        _mainMenuScreen.OpenMenu();
+    }
+
+    private void StartCurrentLevel()
+    {
+        _engine.StartLevel(_currentLevel, _playerName);
+        ResizeTile(_engine.Map);
+        _gameplayScreen.Initialize();
+        
+        _currentScreen = _gameplayScreen;
+    }
+
+    private void StartGame(string playerName, int levelNum)
+    {
+        _currentLevel = levelNum;
+        _playerName = playerName;
+        StartCurrentLevel();
+    }
+
+    private void ResizeTile(LevelMap map)
+    {
+        var screenWidth = GraphicsDevice.PresentationParameters.BackBufferWidth - 200;
+        var screenHeight = GraphicsDevice.PresentationParameters.BackBufferHeight;
+
+        var tileSizeX = screenWidth / map.Width;
+        var tileSizeY = screenHeight / map.Height;
+
+        var tileSize = Math.Min(tileSizeX, tileSizeY);
+
+        _mapDrawer.TileSize = tileSize;
+    }
+
+    private void TryEndLevel()
+    {
+        if (_engine.Map is null || !_engine.CheckWin()) 
+            return;
+        _engine.State.PassedLevels++;
+        _gameplayScreen.CloseScreen();
+        
+        if (_engine.LevelCount - 1 == _currentLevel)
+        {
+            _endGameScreen.Open();
+            _currentScreen = _endGameScreen;
+        }
+        else
+        {
+            _engine.EndLevel();
+            _currentScreen = _endLevelScreen;
+            _endLevelScreen.Open();
+        }
+    }
 }

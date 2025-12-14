@@ -13,5 +13,10 @@ public interface IMapLoader
     /// <param name="levelNumber">Номер уровня</param>
     /// <param name="playerName">Имя игрока.</param>
     /// <returns></returns>
-    LevelMap LoadLevel(int levelNumber, string playerName);
+    LevelMap LoadLevel(int levelNumber);
+
+    /// <summary>
+    /// Количество уровней.
+    /// </summary>
+    public int LevelsCount { get;}
 }
