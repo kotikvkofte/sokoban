@@ -1,0 +1,14 @@
+﻿services:
+  sokoban-db:
+    image: postgres:latest
+    container_name: sokoban-db
+    environment:
+      POSTGRES_PASSWORD: 1
+      POSTGRES_USER: postgres
+      POSTGRES_DB: sokobanDb
+    ports:
+      - "5432:5432"
+    volumes:
+      - sokoban-db:/var/lib/postgresql/data
+volumes:
+  sokoban-db:
