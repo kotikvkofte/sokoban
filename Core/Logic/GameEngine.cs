@@ -44,7 +44,7 @@ public class GameEngine(IMapLoader mapLoader, IGameProgressSaver progressSaver)
     /// <param name="playerName">Имя игрока.</param>
     public void StartLevel(int levelNumber, string playerName)
     {
-        if(levelNumber >= LevelCount || levelNumber < 0)
+        if(levelNumber > LevelCount || levelNumber < 0)
             throw new ArgumentOutOfRangeException(nameof(levelNumber), "Такого уровня нет.");
         
         Map = mapLoader.LoadLevel(levelNumber);

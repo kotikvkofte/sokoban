@@ -44,13 +44,13 @@ public class Game1 : Game
     {
         InitializeGum();
 
-        _engine = new GameEngine(new MapLoader(), null);
+        _engine = new GameEngine(new DbMapLoader(), null);
         _previousKeyboardState = new KeyboardState();
 
         _mainMenuScreen = new MainMenuScreen(StartGame);
         _endLevelScreen = new EndLevelScreen(ToMainMenu, ToNextLevel, _engine.State);
         _endGameScreen = new EndGameScreen(ToMainMenu, _engine.State);
-        
+
         _currentScreen = _mainMenuScreen;
 
         base.Initialize();
@@ -145,7 +145,7 @@ public class Game1 : Game
         _engine.StartLevel(_currentLevel, _playerName);
         ResizeTile(_engine.Map);
         _gameplayScreen.Initialize();
-        
+
         _currentScreen = _gameplayScreen;
     }
 
@@ -153,7 +153,16 @@ public class Game1 : Game
     {
         _currentLevel = levelNum;
         _playerName = playerName;
-        StartCurrentLevel();
+        try
+        {
+            StartCurrentLevel();
+        }
+        catch (Exception e)
+        {
+            MessageBox.Show("Error!", "Can't find level " + levelNum, ["Ok"]);
+            _mainMenuScreen.OpenMenu();
+            Console.WriteLine(e);
+        }
     }
 
     private void ResizeTile(LevelMap map)
@@ -171,12 +180,12 @@ public class Game1 : Game
 
     private void TryEndLevel()
     {
-        if (_engine.Map is null || !_engine.CheckWin()) 
+        if (_engine.Map is null || !_engine.CheckWin())
             return;
         _engine.State.PassedLevels++;
         _gameplayScreen.CloseScreen();
-        
-        if (_engine.LevelCount - 1 == _currentLevel)
+
+        if (_engine.LevelCount == _currentLevel)
         {
             _endGameScreen.Open();
             _currentScreen = _endGameScreen;

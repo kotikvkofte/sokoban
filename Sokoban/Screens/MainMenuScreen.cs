@@ -85,6 +85,6 @@ public class MainMenuScreen : IGameScreen
             return;
 
         _panel.IsVisible = false;
-        _onStart(name, int.Parse(_levelNum) - 1);
+        _onStart(name, int.Parse(_levelNum));
     }
 }
