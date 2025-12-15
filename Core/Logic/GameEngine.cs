@@ -10,12 +10,12 @@ namespace Core.Logic;
 /// </summary>
 /// <param name="mapLoader"></param>
 /// <param name="progressSaver"></param>
-public class GameEngine(IMapLoader mapLoader, IGameProgressSaver progressSaver)
+public class GameEngine(IMapLoader mapLoader, IGameProgress progressSaver)
 {
     /// <summary>
     /// Игровая статистика.
     /// </summary>
-    public GameState State { get; } = new();
+    public GameState State { get; private set; } = new();
 
     /// <summary>
     /// Количество уровней.
@@ -30,7 +30,7 @@ public class GameEngine(IMapLoader mapLoader, IGameProgressSaver progressSaver)
     /// <summary>
     /// Объект, отвечающий за сохранение игрового прогресса.
     /// </summary>
-    private readonly IGameProgressSaver progressSaver = progressSaver;
+    private readonly IGameProgress progressSaver = progressSaver;
     
     /// <summary>
     /// Таймер.
@@ -44,15 +44,12 @@ public class GameEngine(IMapLoader mapLoader, IGameProgressSaver progressSaver)
     /// <param name="playerName">Имя игрока.</param>
     public void StartLevel(int levelNumber, string playerName)
     {
-        if(levelNumber >= LevelCount || levelNumber < 0)
+        if(levelNumber > LevelCount || levelNumber < 0)
             throw new ArgumentOutOfRangeException(nameof(levelNumber), "Такого уровня нет.");
         
         Map = mapLoader.LoadLevel(levelNumber);
         Map.Player.Name = playerName;
-        
-        State.CurrentLevel = levelNumber;
-        State.CurrentMovesCount = 0;
-        State.CurrentTime = TimeSpan.Zero;
+        State = progressSaver.GetProgress(playerName, levelNumber);
 
         levelTimer.Restart();
     }
@@ -74,6 +71,6 @@ public class GameEngine(IMapLoader mapLoader, IGameProgressSaver progressSaver)
 
     public void EndLevel()
     {
-        //TODO:сохранение результатов в БД
+        progressSaver.SaveProgress(State, Map.Player.Name);
     }
 }

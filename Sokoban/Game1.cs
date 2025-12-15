@@ -26,6 +26,8 @@ public class Game1 : Game
     private GameplayScreen _gameplayScreen;
     private EndLevelScreen _endLevelScreen;
     private EndGameScreen _endGameScreen;
+    private LeaderBoardScreen _leaderBoardScreen;
+    private IGameProgress _gameProgress;
     private GameEngine _engine;
     private KeyboardState _previousKeyboardState;
     private MapDrawer _mapDrawer;
@@ -39,18 +41,20 @@ public class Game1 : Game
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
     }
-
+    
     protected override void Initialize()
     {
         InitializeGum();
 
-        _engine = new GameEngine(new MapLoader(), null);
+        _gameProgress = new DbGameProgress();
+        _engine = new GameEngine(new DbMapLoader(), _gameProgress);
         _previousKeyboardState = new KeyboardState();
 
-        _mainMenuScreen = new MainMenuScreen(StartGame);
+        _mainMenuScreen = new MainMenuScreen(StartGame, OpenLeaderBoard);
         _endLevelScreen = new EndLevelScreen(ToMainMenu, ToNextLevel, _engine.State);
         _endGameScreen = new EndGameScreen(ToMainMenu, _engine.State);
-        
+        _leaderBoardScreen = new LeaderBoardScreen(ToMainMenu);
+
         _currentScreen = _mainMenuScreen;
 
         base.Initialize();
@@ -145,7 +149,7 @@ public class Game1 : Game
         _engine.StartLevel(_currentLevel, _playerName);
         ResizeTile(_engine.Map);
         _gameplayScreen.Initialize();
-        
+
         _currentScreen = _gameplayScreen;
     }
 
@@ -153,7 +157,16 @@ public class Game1 : Game
     {
         _currentLevel = levelNum;
         _playerName = playerName;
-        StartCurrentLevel();
+        try
+        {
+            StartCurrentLevel();
+        }
+        catch (Exception e)
+        {
+            MessageBox.Show("Error!", "Can't find level " + levelNum, ["Ok"]);
+            _mainMenuScreen.OpenMenu();
+            Console.WriteLine(e);
+        }
     }
 
     private void ResizeTile(LevelMap map)
@@ -171,21 +184,28 @@ public class Game1 : Game
 
     private void TryEndLevel()
     {
-        if (_engine.Map is null || !_engine.CheckWin()) 
+        if (_engine.Map is null || !_engine.CheckWin())
             return;
-        _engine.State.PassedLevels++;
-        _gameplayScreen.CloseScreen();
         
-        if (_engine.LevelCount - 1 == _currentLevel)
+        _gameplayScreen.CloseScreen();
+        _engine.EndLevel();
+
+        if (_engine.LevelCount == _currentLevel)
         {
-            _endGameScreen.Open();
+            _endGameScreen.Open(_engine.State);
             _currentScreen = _endGameScreen;
         }
         else
         {
-            _engine.EndLevel();
             _currentScreen = _endLevelScreen;
-            _endLevelScreen.Open();
+            _endLevelScreen.Open(_engine.State);
         }
+    }
+
+    private void OpenLeaderBoard()
+    {
+        _leaderBoardScreen.UpdateStatistic(_gameProgress.GetStatistics());
+         _currentScreen = _leaderBoardScreen;
+        _leaderBoardScreen.Open();
     }
 }
