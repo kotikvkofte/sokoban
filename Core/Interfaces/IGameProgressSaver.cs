@@ -1,4 +1,5 @@
 ﻿using Core.Models;
+using DBA.Entity;
 
 namespace Core.Interfaces;
 
@@ -14,5 +15,7 @@ public interface IGameProgress
     /// <param name="playerName">Имя игрока</param>
     void SaveProgress(GameState state, string playerName);
     
-    GameState LoadProgress(string playerName, int levelNum);
+    GameState GetProgress(string playerName, int levelNum);
+    
+    List<StatisticEntity> GetStatistics();
 }

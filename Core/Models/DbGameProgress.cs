@@ -1,6 +1,7 @@
 ﻿using Core.Interfaces;
 using DBA;
 using DBA.Entity;
+using Microsoft.EntityFrameworkCore;
 
 namespace Core.Models;
 
@@ -49,7 +50,7 @@ public class DbGameProgress : IGameProgress
         context.SaveChanges();
     }
 
-    public GameState LoadProgress(string playerName, int levelNum)
+    public GameState GetProgress(string playerName, int levelNum)
     {
         var gameState = new GameState
         {
@@ -73,5 +74,24 @@ public class DbGameProgress : IGameProgress
         gameState.PassedLevels = context.Statistics.Count(s => s.Player == playerEntity);
 
         return gameState;
+    }
+
+    public List<StatisticEntity> GetStatistics()
+    {
+        using var context = new AppDbContext();
+           
+        return context.Statistics
+            .Include(s => s.Level)
+            .Include(s => s.Player)
+            .AsEnumerable()
+            .GroupBy(s => s.Level.Id)
+            .Select(s => s
+                .OrderBy(x => x.BestCount)
+                .ThenBy(x => x.BestTime)
+                .First()
+            )
+            .OrderBy(s => s.Level.Id)
+            .Take(50)
+            .ToList();
     }
 }

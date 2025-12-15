@@ -9,6 +9,7 @@ namespace Sokoban.Screens;
 public class MainMenuScreen : IGameScreen
 {
     private readonly Action<string, int> _onStart;
+    private readonly Action _openLeaderBoard;
     private Panel _panel;
     private TextBox _nameTextBox;
     private TextBox _levelNumTextBox;
@@ -16,9 +17,10 @@ public class MainMenuScreen : IGameScreen
     private string _playerName = "";
     private string _levelNum = "1";
 
-    public MainMenuScreen(Action<string, int> onStart)
+    public MainMenuScreen(Action<string, int> onStart, Action openLeaderBoard)
     {
         _onStart = onStart;
+        _openLeaderBoard = openLeaderBoard;
         CreateMainMenuUi();
     }
 
@@ -74,6 +76,17 @@ public class MainMenuScreen : IGameScreen
         _startButton.Visual.Y = 80;
         _startButton.Click += (_, _) => TryStart();
         _panel.AddChild(_startButton);
+        
+        var leaderBoardButton = new Button();
+        leaderBoardButton.Text = "Leader board";
+        leaderBoardButton.Anchor(Anchor.Center);
+        leaderBoardButton.Visual.Y = 130;
+        leaderBoardButton.Click += (_, _) =>
+        {
+            _panel.IsVisible = false;
+            _openLeaderBoard();
+        };
+        _panel.AddChild(leaderBoardButton);
 
         _nameTextBox.IsFocused = true;
     }

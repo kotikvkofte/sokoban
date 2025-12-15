@@ -26,6 +26,8 @@ public class Game1 : Game
     private GameplayScreen _gameplayScreen;
     private EndLevelScreen _endLevelScreen;
     private EndGameScreen _endGameScreen;
+    private LeaderBoardScreen _leaderBoardScreen;
+    private IGameProgress _gameProgress;
     private GameEngine _engine;
     private KeyboardState _previousKeyboardState;
     private MapDrawer _mapDrawer;
@@ -39,17 +41,19 @@ public class Game1 : Game
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
     }
-
+    
     protected override void Initialize()
     {
         InitializeGum();
 
-        _engine = new GameEngine(new DbMapLoader(), new DbGameProgress());
+        _gameProgress = new DbGameProgress();
+        _engine = new GameEngine(new DbMapLoader(), _gameProgress);
         _previousKeyboardState = new KeyboardState();
 
-        _mainMenuScreen = new MainMenuScreen(StartGame);
+        _mainMenuScreen = new MainMenuScreen(StartGame, OpenLeaderBoard);
         _endLevelScreen = new EndLevelScreen(ToMainMenu, ToNextLevel, _engine.State);
         _endGameScreen = new EndGameScreen(ToMainMenu, _engine.State);
+        _leaderBoardScreen = new LeaderBoardScreen(ToMainMenu);
 
         _currentScreen = _mainMenuScreen;
 
@@ -196,5 +200,12 @@ public class Game1 : Game
             _currentScreen = _endLevelScreen;
             _endLevelScreen.Open(_engine.State);
         }
+    }
+
+    private void OpenLeaderBoard()
+    {
+        _leaderBoardScreen.UpdateStatistic(_gameProgress.GetStatistics());
+         _currentScreen = _leaderBoardScreen;
+        _leaderBoardScreen.Open();
     }
 }

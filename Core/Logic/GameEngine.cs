@@ -49,7 +49,7 @@ public class GameEngine(IMapLoader mapLoader, IGameProgress progressSaver)
         
         Map = mapLoader.LoadLevel(levelNumber);
         Map.Player.Name = playerName;
-        State = progressSaver.LoadProgress(playerName, levelNumber);
+        State = progressSaver.GetProgress(playerName, levelNumber);
 
         levelTimer.Restart();
     }
