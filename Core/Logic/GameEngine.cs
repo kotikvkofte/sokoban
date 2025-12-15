@@ -10,12 +10,12 @@ namespace Core.Logic;
 /// </summary>
 /// <param name="mapLoader"></param>
 /// <param name="progressSaver"></param>
-public class GameEngine(IMapLoader mapLoader, IGameProgressSaver progressSaver)
+public class GameEngine(IMapLoader mapLoader, IGameProgress progressSaver)
 {
     /// <summary>
     /// Игровая статистика.
     /// </summary>
-    public GameState State { get; } = new();
+    public GameState State { get; private set; } = new();
 
     /// <summary>
     /// Количество уровней.
@@ -30,7 +30,7 @@ public class GameEngine(IMapLoader mapLoader, IGameProgressSaver progressSaver)
     /// <summary>
     /// Объект, отвечающий за сохранение игрового прогресса.
     /// </summary>
-    private readonly IGameProgressSaver progressSaver = progressSaver;
+    private readonly IGameProgress progressSaver = progressSaver;
     
     /// <summary>
     /// Таймер.
@@ -49,10 +49,7 @@ public class GameEngine(IMapLoader mapLoader, IGameProgressSaver progressSaver)
         
         Map = mapLoader.LoadLevel(levelNumber);
         Map.Player.Name = playerName;
-        
-        State.CurrentLevel = levelNumber;
-        State.CurrentMovesCount = 0;
-        State.CurrentTime = TimeSpan.Zero;
+        State = progressSaver.LoadProgress(playerName, levelNumber);
 
         levelTimer.Restart();
     }
@@ -74,6 +71,6 @@ public class GameEngine(IMapLoader mapLoader, IGameProgressSaver progressSaver)
 
     public void EndLevel()
     {
-        //TODO:сохранение результатов в БД
+        progressSaver.SaveProgress(State, Map.Player.Name);
     }
 }

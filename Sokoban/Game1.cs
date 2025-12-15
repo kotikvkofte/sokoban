@@ -44,7 +44,7 @@ public class Game1 : Game
     {
         InitializeGum();
 
-        _engine = new GameEngine(new DbMapLoader(), null);
+        _engine = new GameEngine(new DbMapLoader(), new DbGameProgress());
         _previousKeyboardState = new KeyboardState();
 
         _mainMenuScreen = new MainMenuScreen(StartGame);
@@ -182,19 +182,19 @@ public class Game1 : Game
     {
         if (_engine.Map is null || !_engine.CheckWin())
             return;
-        _engine.State.PassedLevels++;
+        
         _gameplayScreen.CloseScreen();
+        _engine.EndLevel();
 
         if (_engine.LevelCount == _currentLevel)
         {
-            _endGameScreen.Open();
+            _endGameScreen.Open(_engine.State);
             _currentScreen = _endGameScreen;
         }
         else
         {
-            _engine.EndLevel();
             _currentScreen = _endLevelScreen;
-            _endLevelScreen.Open();
+            _endLevelScreen.Open(_engine.State);
         }
     }
 }
